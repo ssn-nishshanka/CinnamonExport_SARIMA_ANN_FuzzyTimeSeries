@@ -1,0 +1,285 @@
+---
+title: "CinnamonExports_R"
+author: "sasandi nissanka"
+date: "2025-12-20"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(writexl)
+library(tseries)
+library(forecast)
+library(ggplot2)
+library(stats)
+library(lubridate)
+```
+```{r}
+# Import the Excel file
+data <- read_excel("C:/Users/HP/Downloads/monthly_export_summary.xlsx")
+```
+
+```{r}
+data
+```
+
+```{r}
+# Define test size (2 years = 24 months)
+test_size <- 24
+```
+
+```{r}
+# Split data into training and test
+train_data <- data[1:(nrow(data) - test_size), ]
+test_data  <- data[(nrow(data) - test_size + 1):nrow(data), ]
+```
+
+```{r}
+# Save training data to Excel
+write_xlsx(
+  train_data,
+  "C:/Users/HP/Downloads/cinnamon_export_train.xlsx"
+)
+
+# Save test data to Excel
+write_xlsx(
+  test_data,
+  "C:/Users/HP/Downloads/cinnamon_export_test.xlsx"
+)
+```
+
+```{r}
+# rename
+names(train_data)[4] <- "Total_Quantity_Tonnes"
+colnames(train_data)
+```
+
+```{r}
+# Convert train data to time series (monthly)
+train_ts <- ts(
+  train_data$Total_Quantity_Tonnes,
+  start = c(2004, 1),
+  frequency = 12
+)
+```
+
+```{r}
+# plot time series with train data
+
+plot(
+  train_ts,
+  main = "Monthly Cinnamon Export Quantity (Train Data)",
+  ylab = "Quantity (Tonnes)",
+  xlab = "Year"
+)
+```
+
+```{r}
+acf(
+  train_ts,
+  lag.max = 65,
+  main = "ACF - Train Series (65 Lags)"
+)
+
+pacf(
+  train_ts,
+  lag.max = 65,
+  main = "PACF - Train Series (65 Lags)"
+)
+```
+
+```{r}
+# adf test in eviews with trend and intercept showed a deterministic trend (0.005 p value which is less than 0.05 threshold). And with intercept only and with no intercept and no trend adf tests showed stochastic trend having greater p values than 0.05. So first differencing should be done. adf tests after first differencing showed that deterministic trend and stichastic trend were removed
+```
+
+```{r}
+# first differencing to remove the deterministic and stochastic trend
+diff_train_ts <- diff(train_ts)
+```
+
+```{r}
+plot(
+  diff_train_ts,
+  main = "First Differenced Train Series",
+  ylab = "Differenced Quantity",
+  xlab = "Year"
+)
+```
+```{r}
+# ACF & PACF of first differenced series to check seasonality
+
+acf(
+  diff_train_ts,
+  lag.max = 65,
+  main = "ACF - First Differenced Series"
+)
+
+pacf(
+  diff_train_ts,
+  lag.max = 65,
+  main = "PACF - First Differenced Series"
+)
+```
+
+```{r}
+# there are spikes at each lag 12 so seasonal differencing is needed
+```
+
+```{r}
+# seasonal differencing of the first differenced series
+
+seasonal_diff_ts <- diff(
+  diff_train_ts,
+  lag = 12
+)
+```
+
+```{r}
+plot(
+  seasonal_diff_ts,
+  main = "Seasonally Differenced Series (d=1, D=1, s=12)",
+  ylab = "Differenced Quantity",
+  xlab = "Year"
+)
+```
+```{r}
+# acf and pacf after seasonal differencing
+
+acf( seasonal_diff_ts, lag.max = 82, main = "ACF - After Seasonal Differencing on First differenced series" ) 
+
+pacf( seasonal_diff_ts, lag.max = 82, main = "PACF - After Seasonal Differencing on First differenced series" )
+```
+
+```{r}
+# p = 3 (PACF cuts off around lag 3)
+# d = 1 (first differencing)
+# q = 1 (ACF cuts off after lag 1)
+# P = 1 (PACF shows significant negative spike at lag 12)
+# D = 1 (seasonal differencing)
+# Q = 1 (ACF shows significant negative spike at lag 12)
+```
+
+
+```{r}
+model <- auto.arima(
+  train_ts,
+  d = 1,
+  D = 1,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+
+summary(model)
+```
+
+```{r}
+checkresiduals(model)
+```
+
+
+```{r}
+# Rename the 4th column
+names(test_data)[4] <- "Total_Quantity_Tonnes"
+
+colnames(test_data)
+```
+
+```{r}
+# compare forecast with actual test data
+# Forecast for test horizon
+h <- length(test_data$Total_Quantity_Tonnes)
+sarima_forecast <- forecast(model, h = h)
+
+# Convert test data to time series
+actual_ts <- ts(
+  test_data$Total_Quantity_Tonnes,
+  start = c(2023, 7),
+  frequency = 12
+)
+
+# Extract forecast values
+pred_values <- as.numeric(sarima_forecast$mean)
+
+# Create comparison table
+comparison <- data.frame(
+  Month = as.Date(paste0(test_data$Period, "-01")),
+  Actual = as.numeric(actual_ts),
+  Forecast = pred_values
+)
+
+
+comparison
+```
+
+```{r}
+# forecast accuracy
+
+accuracy(
+  sarima_forecast,
+  actual_ts
+)
+```
+
+```{r}
+# actual vs forecast plot
+
+ggplot(comparison, aes(x = Month)) +
+  geom_line(aes(y = Actual, color = "Actual")) +
+  geom_line(aes(y = Forecast, color = "Forecast")) +
+  labs(title = "Cinnamon Export Forecast vs Actual on test data",
+       y = "Quantity (Tonnes)",
+       x = "Month") +
+  scale_color_manual("", values = c("Actual" = "blue", "Forecast" = "red")) +
+  theme_minimal()
+```
+```{r}
+# Forecast 3 months beyond the full dataset
+future_forecast <- forecast(model, h = 3)
+
+# Rename 4th column
+names(data)[4] <- "Total_Quantity_Tonnes"
+
+# Full time series
+full_ts <- ts(
+  data$Total_Quantity_Tonnes,
+  start = c(2004, 1),
+  frequency = 12
+)
+
+# Actual data frame
+actual_df <- data.frame(
+  Month = as.Date(paste0(data$Period, "-01")),
+  Quantity = as.numeric(full_ts)
+)
+
+# Future forecast data frame
+last_data_month <- max(actual_df$Month)
+future_df <- data.frame(
+  Month = seq(from = last_data_month %m+% months(1), by = "month", length.out = 3),
+  Quantity = as.numeric(future_forecast$mean)
+)
+
+# Combine for plotting
+plot_df <- rbind(
+  data.frame(Month = actual_df$Month, Quantity = actual_df$Quantity, Type = "Actual"),
+  data.frame(Month = future_df$Month, Quantity = future_df$Quantity, Type = "Forecast")
+)
+
+# Plot
+ggplot() +
+  # Actual line
+  geom_line(data = actual_df, aes(x = Month, y = Quantity), color = "blue", size = 1) +
+  geom_point(data = actual_df, aes(x = Month, y = Quantity), color = "blue", size = 2) +
+  # Forecast line (dashed, connected to last actual)
+  geom_line(data = rbind(tail(actual_df, 1), future_df),
+            aes(x = Month, y = Quantity), color = "red", size = 1, linetype = "dashed") +
+  geom_point(data = future_df, aes(x = Month, y = Quantity), color = "red", size = 2) +
+  labs(
+    title = "Cinnamon Export: Forecast for Next 3 Months",
+    x = "Month",
+    y = "Quantity (Tonnes)"
+  ) +
+  theme_minimal()
+```
+
