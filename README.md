@@ -1,6 +1,7 @@
-# Cinnamon Export Forecasting
+# Comparative Analysis of SARIMA, Fuzzy Time Series, and Artificial Neural Networks for Forecasting Monthly Cinnamon Export Quantities in Sri Lanka
 
 **Project:** Comparative analysis of forecasting models for monthly Ceylon cinnamon exports in Sri Lanka.  
+
 **Goal:** Determine the most accurate short-term forecasting method for the Sri Lanka monthly Ceylon cinnamon export dataset (2004–2025) to support strategic planning.
 
 **Technologies & Methods:** Python, R, EViews, SARIMA, Artificial Neural Networks (ANN), Fuzzy Time Series, Time Series Analysis, Pandas, NumPy, TensorFlow, Statsmodels, Data Visualization (Matplotlib)
@@ -87,6 +88,7 @@ cinnamonExport-sarima-ann-fuzzyTimeSeries/
 ├── .gitignore
 └── README.md
 ```
+
 
 
 
