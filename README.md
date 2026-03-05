@@ -75,26 +75,20 @@ Sri Lanka is the world’s largest producer of pure cinnamon. Accurate forecasti
 
 ## Folder Structure
 
+```
 cinnamonExport-sarima-ann-fuzzyTimeSeries/
-
 │
 ├── data/
 │   ├── raw/
 │   └── processed/
-
 ├── notebooks/
-
 │   ├── modeling.ipynb
-
 │   └── sarima_analysis.Rmd
-
 ├── figures/
-
 ├── results/
-
 ├── .gitignore
-
 └── README.md
+```
 
 
 
