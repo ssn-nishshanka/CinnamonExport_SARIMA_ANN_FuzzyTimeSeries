@@ -89,6 +89,16 @@ cinnamonExport-sarima-ann-fuzzyTimeSeries/
 └── README.md
 ```
 
+---
+
+## Conclusion
+
+The comparative analysis of SARIMA, ANN, and Fuzzy Time Series models for forecasting Sri Lanka’s monthly Ceylon cinnamon exports shows that **SARIMA provides the most accurate short-term predictions**. Its ability to capture the linear trend and seasonality resulted in the lowest errors (RMSE: 299.75, MAPE: 16.95%).  
+
+While ANN and Fuzzy Time Series produced reasonable forecasts, SARIMA is best suited for operational planning and policy decision-making for this dataset. The relative performance of forecasting models depends on the characteristics of the data, and different datasets may favor different approaches. Future improvements could include comparison with hybrid models to further enhance accuracy.
+
+
+
 
 
 
